@@ -1,0 +1,11 @@
+{
+  "input": {
+    "query": "What is a panda?",
+    "passages": [
+      "The giant panda (Ailuropoda melanoleuca), sometimes called a panda bear or simply panda, is a bear species endemic to China.",
+      "Pandas are a type of programming library used for data analysis.",
+      "A red panda is a mammal native to the eastern Himalayas and southwestern China."
+    ],
+    "normalize": true
+  }
+}
