@@ -1,44 +1,27 @@
 import runpod
-import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from FlagEmbedding import FlagReranker
 
-# Global variables to store model and tokenizer
-model = None
-tokenizer = None
+# Global variable to store reranker
+reranker = None
 
 def load_model():
-    """Load the model and tokenizer."""
-    global model, tokenizer
+    """Load the reranker model."""
+    global reranker
     
     print("Loading BGE Reranker model...")
     model_name = "BAAI/bge-reranker-v2-m3"
     
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    # Initialize the reranker with FP16 for faster computation
+    reranker = FlagReranker(model_name, use_fp16=True)
     
-    # Move model to GPU if available
-    if torch.cuda.is_available():
-        model = model.to("cuda")
-    
-    model.eval()
     print("Model loaded successfully!")
 
 def compute_score(pairs, normalize=False):
     """Compute relevance scores for query-passage pairs."""
-    with torch.no_grad():
-        inputs = tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=512)
-        
-        # Move inputs to GPU if available
-        if torch.cuda.is_available():
-            inputs = {k: v.to("cuda") for k, v in inputs.items()}
-        
-        scores = model(**inputs, return_dict=True).logits.view(-1, ).float()
-        
-        # Apply sigmoid function to normalize scores between 0 and 1 if requested
-        if normalize:
-            scores = torch.sigmoid(scores)
-        
-        return scores.cpu().tolist()
+    # FlagReranker handles GPU usage internally
+    scores = reranker.compute_score(pairs, normalize=normalize)
+    
+    return scores
 
 def handler(event):
     """
@@ -50,10 +33,10 @@ def handler(event):
     Returns:
         dict: The result to be returned to the client
     """
-    global model, tokenizer
+    global reranker
     
     # Load model if not already loaded
-    if model is None or tokenizer is None:
+    if reranker is None:
         load_model()
     
     # Extract input data
